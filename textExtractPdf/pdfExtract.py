@@ -1,72 +1,34 @@
-import re
+from textblob import TextBlob
 import PyPDF2
-import spacy
-
-# Load the English language model for spaCy
-nlp = spacy.load('en_core_web_sm')
-
-# Open the PDF file
-pdf_file = open('The_Analyst_and_the_Small_Group.pdf', 'rb')
-
-# Create a PDF reader object
-pdf_reader = PyPDF2.PdfReader(pdf_file)
-
-# Loop through each page and extract the text
-text = ''
-for page in range(len(pdf_reader.pages)):
-    text += pdf_reader.pages[page].extract_text()
-
-# Replace runs of whitespace characters with single spaces
-text = re.sub(r'\s+', ' ', text)
-
-# Tokenize the text using spaCy
-doc = nlp(text)
-tokenized_text = [token.text for token in doc]
-
-# Join the tokenized words with spaces
-text = ' '.join(tokenized_text)
-
-# Close the PDF file
-pdf_file.close()
-
-# Open the HTML file for appending
-with open('index.html', 'a') as f:
-    # Append the extracted text to the HTML file
-    f.write(f'<p>{text}</p>')
+import re
+import os
 
 
-# import PyPDF2
-# import re
-# import spacy
+def extract_text_from_pdf(pdf_path):
+    with open(pdf_path, 'rb') as pdf_file:
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        text = ''.join(page.extract_text() for page in pdf_reader.pages)
+        return re.sub(r'\s+', ' ', text)
 
-# # Load the English language model for spaCy
-# nlp = spacy.load('en_core_web_sm')
 
-# # Open the PDF file
-# pdf_file = open('The_Analyst_and_the_Small_Group.pdf', 'rb')
+def correct_spelling_errors(text):
+    blob = TextBlob(text)
+    return str(blob.correct())
 
-# # Create a PDF reader object
-# pdf_reader = PyPDF2.PdfReader(pdf_file)
 
-# # Loop through each page and extract the text
-# text = ''
-# for page in range(len(pdf_reader.pages)):
-#     text += pdf_reader.pages[page].extract_text()
+def append_text_to_html_file(html_path, corrected_text):
+    with open(html_path, 'a', encoding='utf-8') as f:
+        f.write(f'<div><p>{corrected_text}</p></div>')
 
-# # Replace runs of whitespace characters with single spaces
-# text = re.sub(r'\s+', ' ', text)
 
-# # Tokenize the text using spaCy
-# doc = nlp(text)
-# tokenized_text = [token.text for token in doc]
+def main():
+    pdf_path = 'Soviet-Deception-Cuban-Missile.pdf'
+    html_path = 'index.html'
 
-# # Join the tokenized words with spaces
-# text = ' '.join(tokenized_text)
+    text = extract_text_from_pdf(pdf_path)
+    corrected_text = correct_spelling_errors(text)
+    append_text_to_html_file(html_path, corrected_text)
 
-# # Close the PDF file
-# pdf_file.close()
 
-# # Open the HTML file for appending
-# with open('index.html', 'a') as f:
-#     # Append the extracted text to the HTML file
-#     f.write(f'<p>{text}</p>')
+if __name__ == '__main__':
+    main()
