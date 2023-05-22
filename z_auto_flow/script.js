@@ -1,75 +1,56 @@
-var dictionary = new Typo("en_US");
+document.getElementById('chunk-form').addEventListener('submit', function(e) {
+  e.preventDefault();
 
-function correctSpelling(text) {
-  var words = text.split(" ");
-  var corrections = [];
+  const MAX_CHUNK_SIZE = 16000;
+  let textInput = document.getElementById('text-input').value;
+  let sentences = textInput.replace(/([.?!])\s*(?=[A-Z])/g, "$1|").split("|");
 
-  for (var i = 0; i < words.length; i++) {
-    if (!dictionary.check(words[i])) {
-      var suggestions = dictionary.suggest(words[i]);
-      var correction = suggestions[0];
-      words[i] = correction;
+  let chunks = [];
+  let chunk = '';
 
-      // Add the original word and correction to the corrections list
-      corrections.push({ original: words[i], corrected: correction });
+  sentences.forEach(sentence => {
+    if ((chunk + sentence).length > MAX_CHUNK_SIZE) {
+      chunks.push(chunk);
+      chunk = sentence;
+    } else {
+      chunk += sentence;
     }
-  }
+  });
 
-  // Log the corrections to the console
-  console.log("Corrections made:", corrections);
+  // Push the last chunk
+  chunks.push(chunk);
 
-  return words.join(" ");
-}
+  let outputContainer = document.getElementById('output-container');
+  outputContainer.innerHTML = '';  // Clear previous output
 
-function divideIntoChunks(text) {
-  const words = text.split(" ");
-  const chunkSize = 16000;
-  const chunks = [];
-  let currentChunk = "";
+  // Append information about the total text
+  let totalCharacters = textInput.length;
+  let totalWords = textInput.split(/\s+/).length;
+  let totalChunks = chunks.length;
 
-  // ... rest of the divideIntoChunks function ...
+  outputContainer.innerHTML += `<h1>Total Characters: ${totalCharacters}, Total Words: ${totalWords}, Total Chunks: ${totalChunks}</h1>`;
 
-  if (currentChunk) {
-    chunks.push(currentChunk);
-  }
+  // Append information about each chunk
+  chunks.forEach((chunk, i) => {
+    let chunkCharacters = chunk.length;
+    let chunkWords = chunk.split(/\s+/).length;
 
-  const correctedChunks = chunks.map((chunk) => correctSpelling(chunk));
+    let detailsElem = document.createElement('details');
+    detailsElem.innerHTML = `
+      <summary>Chunk ${i+1}: Characters: ${chunkCharacters}, Words: ${chunkWords}
+        <button class="copy-btn" data-chunk="${chunk}">Copy</button>
+      </summary>
+      <p>${chunk}</p>
+    `;
+    outputContainer.appendChild(detailsElem);
+  });
 
-  const container = document.createElement("div");
-  container.classList.add("chunk-container");
-
-  for (let i = 0; i < correctedChunks.length; i++) {
-    const chunkHeader = document.createElement("h1");
-    chunkHeader.textContent = `Chunk ${i + 1} (${
-      correctedChunks[i].length
-    } characters, ${correctedChunks[i].split(" ").length} words)`;
-    container.appendChild(chunkHeader);
-
-    const chunkParagraph = document.createElement("p");
-    chunkParagraph.textContent = correctedChunks[i];
-    container.appendChild(chunkParagraph);
-  }
-
-  const inputLength = text.length;
-  const inputWords = text.trim().split(/\s+/).length;
-  const totalHeader = document.createElement("h1");
-  totalHeader.textContent = `Total input (${inputLength} characters, ${inputWords} words, ${correctedChunks.length} chunks)`;
-  container.insertBefore(totalHeader, container.firstChild);
-
-  return container;
-}
-
-const form = document.getElementById("chunk-form");
-const input = document.getElementById("text-input");
-const output = document.getElementById("output-container");
-
-form.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const text = input.value;
-  const chunksContainer = divideIntoChunks(text);
-  output.innerHTML = "";
-  output.appendChild(chunksContainer);
-
-  const totalHeader = chunksContainer.querySelector(":first-child");
-  console.log(totalHeader.textContent);
+  // Add event listener to copy buttons
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();  // prevent the details from toggling when copy button is clicked
+      navigator.clipboard.writeText(this.dataset.chunk)
+        .catch(err => console.error('Could not copy text: ', err));
+    });
+  });
 });
